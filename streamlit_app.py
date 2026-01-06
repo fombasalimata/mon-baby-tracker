@@ -59,4 +59,6 @@ with tab1:
     with st.form("repas_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         date_r = col1.date_input("Date", datetime.now())
-        heure_r = col2.time_input("Heure",
+        heure_r = col2.time_input("Heure", datetime.now().time()) # Vérifiez bien cette ligne !
+        
+        type_repas = st.selectbox("Type", ["Tétée (Sein)", "Biberon (Infantile)", "Biberon (Maternel)"])

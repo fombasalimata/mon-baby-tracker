@@ -82,4 +82,44 @@ with tab2:
         
         if st.form_submit_button("Enregistrer change"):
             new_row = pd.DataFrame([{
-                "Date": date_c.
+                "Date": date_c.strftime("%d/%m/%Y"),
+                "Heure": heure_c.strftime("%H:%M"),
+                "Type": etat,
+                "Notes": note_c
+            }])
+            updated = pd.concat([df_c, new_row], ignore_index=True)
+            conn.update(worksheet="Changes", data=updated)
+            st.success("Change enregistré !")
+            st.rerun()
+
+# --- ONGLET SANTÉ ---
+with tab3:
+    try:
+        df_s = conn.read(worksheet="Sante", ttl=0)
+    except:
+        df_s = pd.DataFrame()
+
+    with st.form("sante_form", clear_on_submit=True):
+        date_s = st.date_input("Date RDV", datetime.now())
+        poids = st.number_input("Poids (kg)", min_value=0.0, step=0.01, format="%.2f")
+        taille = st.number_input("Taille (cm)", min_value=0.0, step=0.5)
+        notes_s = st.text_area("Notes médicales")
+        
+        if st.form_submit_button("Enregistrer santé"):
+            new_row = pd.DataFrame([{
+                "Date": date_s.strftime("%d/%m/%Y"),
+                "Poids": poids,
+                "Taille": taille,
+                "Notes": notes_s
+            }])
+            updated = pd.concat([df_s, new_row], ignore_index=True)
+            conn.update(worksheet="Sante", data=updated)
+            st.success("Données enregistrées !")
+            st.rerun()
+
+# --- HISTORIQUE ---
+st.divider()
+st.subheader("📊 Dernières activités")
+if not df_r.empty:
+    st.write("**Derniers repas :**")
+    st.dataframe(df_r.tail(5), hide_index=True, use_container_width=True)

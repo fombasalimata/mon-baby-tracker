@@ -29,7 +29,6 @@ with t_repas:
         if st.form_submit_button("Enregistrer"):
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Quantite": q, "Type": t, "Notes": n}])
             conn.update(worksheet="Repas", data=pd.concat([df_r, new], ignore_index=True))
-            st.success("Noté !")
             st.rerun()
 
 # --- 2. CHANGES ---
@@ -88,28 +87,36 @@ with t_creche:
             conn.update(worksheet="Creche", data=pd.concat([df_cr, new], ignore_index=True))
             st.rerun()
 
-# --- RÉCAPITULATIF FINAL (AVEC FORMATS) ---
+# --- RÉCAPITULATIF FINAL ---
 st.divider()
 st.subheader("📊 Récapitulatif")
 
+# REPAS
 if not df_r.empty:
     st.write("**🍼 Derniers Repas**")
     r_copy = df_r.tail(3).copy()
-    r_copy['Quantite'] = r_copy['Quantite'].astype(str) + " ml" # FORCE LE FORMAT ML
-    st.dataframe(r_copy[['Date', 'Heure', 'Quantite', 'Type']], use_container_width=True, hide_index=True)
+    r_copy['Quantite'] = r_copy['Quantite'].astype(str) + " ml"
+    st.dataframe(r_copy, use_container_width=True, hide_index=True)
 
+# MÉDOCS (Correction ici)
 if not df_m.empty:
     st.write("**💊 Derniers Médocs**")
     st.dataframe(df_m.tail(3), use_container_width=True, hide_index=True)
+else:
+    st.write("ℹ️ Aucune donnée médicament.")
 
+# CRÈCHE (Correction ici)
 if not df_cr.empty:
     st.write("**🏫 Crèche**")
-    st.dataframe(df_cr.tail(3)[['Date', 'Duree']], use_container_width=True, hide_index=True)
+    st.dataframe(df_cr.tail(3), use_container_width=True, hide_index=True)
+else:
+    st.write("ℹ️ Aucune donnée crèche.")
 
+# SANTÉ
 if not df_s.empty:
     st.write("**🩺 Santé**")
     s_copy = df_s.tail(3).copy()
     s_copy['Poids'] = s_copy['Poids'].astype(str) + " kg"
     s_copy['Taille'] = s_copy['Taille'].astype(str) + " cm"
     s_copy['Temperature'] = s_copy['Temperature'].astype(str) + " °C"
-    st.dataframe(s_copy[['Date', 'Poids', 'Taille', 'Temperature']], use_container_width=True, hide_index=True)
+    st.dataframe(s_copy, use_container_width=True, hide_index=True)

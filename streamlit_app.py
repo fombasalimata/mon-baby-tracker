@@ -157,28 +157,23 @@ with tab_creche:
 st.divider()
 st.subheader("📊 Récapitulatif Global")
 
-# On utilise des colonnes pour un affichage propre
-c1, c2 = st.columns(2)
+# On affiche les résumés par catégorie
+if not df_r.empty:
+    st.write("**🍼 Repas (3 derniers)**")
+    st.dataframe(df_r.tail(3)[['Date', 'Heure', 'Quantite', 'Type']], use_container_width=True, hide_index=True)
 
-with c1:
-    if not df_r.empty:
-        st.write("**🍼 Repas**")
-        st.dataframe(df_r.tail(3)[['Date', 'Heure', 'Quantite', 'Type']], use_container_width=True, hide_index=True)
+if not df_c.empty:
+    st.write("**🧷 Changes (3 derniers)**")
+    st.dataframe(df_c.tail(3)[['Date', 'Heure', 'Type']], use_container_width=True, hide_index=True)
 
-    if not df_m.empty:
-        st.write("**💊 Médicaments**")
-        st.dataframe(df_m.tail(3)[['Date', 'Nom', 'Donne']], use_container_width=True, hide_index=True)
+if not df_m.empty:
+    st.write("**💊 Médicaments (Suivi des prises)**")
+    st.dataframe(df_m.tail(3)[['Date', 'Heure', 'Nom', 'Donne']], use_container_width=True, hide_index=True)
 
-with c2:
-    if not df_c.empty:
-        st.write("**🧷 Changes**")
-        st.dataframe(df_c.tail(3)[['Date', 'Heure', 'Type']], use_container_width=True, hide_index=True)
+if not df_cr.empty:
+    st.write("**🏫 Crèche (Historique des journées)**")
+    st.dataframe(df_cr.tail(3)[['Date', 'Arrivee', 'Depart', 'Duree']], use_container_width=True, hide_index=True)
 
-    if not df_cr.empty:
-        st.write("**🏫 Crèche**")
-        st.dataframe(df_cr.tail(3)[['Date', 'Duree']], use_container_width=True, hide_index=True)
-
-# Santé en pleine largeur car plus de colonnes
 if not df_s.empty:
-    st.write("**🩺 Suivi Santé**")
+    st.write("**🩺 Santé (Poids/Taille/Temp)**")
     st.dataframe(df_s.tail(3)[['Date', 'Poids', 'Taille', 'Temperature']], use_container_width=True, hide_index=True)

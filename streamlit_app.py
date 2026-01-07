@@ -80,6 +80,7 @@ with t_sommeil:
             new = pd.DataFrame([{"Date": dso.strftime("%d/%m/%Y"), "Coucher": h_couch.strftime("%H:%M"), "Lever": h_lev.strftime("%H:%M"), "Duree": dur_str, "Notes": nso}])
             conn.update(worksheet="Sommeil", data=pd.concat([df_so, new], ignore_index=True))
             st.rerun()
+    # AJOUT SUPPRESSION SOMMEIL
     if not df_so.empty:
         if st.button("🗑️ Supprimer dernier sommeil", key="del_so"):
             conn.update(worksheet="Sommeil", data=df_so.iloc[:-1]); st.rerun()
@@ -95,6 +96,7 @@ with t_bain:
             new = pd.DataFrame([{"Date": db.strftime("%d/%m/%Y"), "Heure": hb.strftime("%H:%M"), "Type": tb, "Notes": nb}])
             conn.update(worksheet="Bains", data=pd.concat([df_b, new], ignore_index=True))
             st.rerun()
+    # AJOUT SUPPRESSION BAIN
     if not df_b.empty:
         if st.button("🗑️ Supprimer dernier bain", key="del_b"):
             conn.update(worksheet="Bains", data=df_b.iloc[:-1]); st.rerun()
@@ -150,11 +152,12 @@ with t_creche:
             new = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Duree": dur_str, "Notes": ncr}])
             conn.update(worksheet="Creche", data=pd.concat([df_cr, new], ignore_index=True))
             st.rerun()
+    # AJOUT SUPPRESSION CRÈCHE
     if not df_cr.empty:
         if st.button("🗑️ Supprimer dernière crèche", key="del_cr"):
             conn.update(worksheet="Creche", data=df_cr.iloc[:-1]); st.rerun()
 
-# --- RÉCAPITULATIF GLOBAL (TABLEAUX DÉTAILLÉS) ---
+# --- RÉCAPITULATIF GLOBAL ---
 st.divider()
 st.subheader("📊 Récapitulatif Global")
 

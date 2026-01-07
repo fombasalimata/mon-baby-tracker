@@ -39,6 +39,11 @@ with tab_repas:
             conn.update(worksheet="Repas", data=pd.concat([df_r, new_data], ignore_index=True))
             st.success("Repas noté !")
             st.rerun()
+    
+    if not df_r.empty:
+        if st.button("🗑️ Supprimer dernier repas"):
+            conn.update(worksheet="Repas", data=df_r.iloc[:-1])
+            st.rerun()
 
 # --- 2. ONGLET CHANGES ---
 with tab_change:
@@ -59,7 +64,12 @@ with tab_change:
             st.success("Change noté !")
             st.rerun()
 
-# --- 3. ONGLET MÉDICAMENTS (Nouveau) ---
+    if not df_c.empty:
+        if st.button("🗑️ Supprimer dernier change"):
+            conn.update(worksheet="Changes", data=df_c.iloc[:-1])
+            st.rerun()
+
+# --- 3. ONGLET MÉDICAMENTS ---
 with tab_medoc:
     try:
         df_m = conn.read(worksheet="Medicaments", ttl=0)
@@ -78,7 +88,12 @@ with tab_medoc:
             statut = "✅ OUI" if donne else "❌ NON"
             new_data_m = pd.DataFrame([{"Date": d_m.strftime("%d/%m/%Y"), "Heure": h_m.strftime("%H:%M"), "Nom": nom_m, "Donne": statut, "Notes": n_m}])
             conn.update(worksheet="Medicaments", data=pd.concat([df_m, new_data_m], ignore_index=True))
-            st.success("Prise de médicament enregistrée !")
+            st.success("Prise enregistrée !")
+            st.rerun()
+
+    if not df_m.empty:
+        if st.button("🗑️ Supprimer dernier médicament"):
+            conn.update(worksheet="Medicaments", data=df_m.iloc[:-1])
             st.rerun()
 
 # --- 4. ONGLET SANTÉ ---
@@ -91,7 +106,7 @@ with tab_sante:
     with st.form("sante_form", clear_on_submit=True):
         d_s = st.date_input("Date", datetime.now(), key="d_s")
         col_p, col_t = st.columns(2)
-        poids = col_p.number_input("Poids (kg)", 0.0, step=0.01, format="%.2f")
+        poids = col_p.number_input("Poids (kg)", 0.0, step=0.01)
         taille = col_t.number_input("Taille (cm)", 0.0, step=0.5)
         temp = st.number_input("Température (°C)", 35.0, 41.0, 37.0, step=0.1)
         n_s = st.text_input("Notes santé")
@@ -99,7 +114,12 @@ with tab_sante:
         if st.form_submit_button("Enregistrer Santé"):
             new_data_s = pd.DataFrame([{"Date": d_s.strftime("%d/%m/%Y"), "Poids": poids, "Taille": taille, "Temperature": temp, "Notes": n_s}])
             conn.update(worksheet="Sante", data=pd.concat([df_s, new_data_s], ignore_index=True))
-            st.success("Données santé enregistrées !")
+            st.success("Santé enregistrée !")
+            st.rerun()
+
+    if not df_s.empty:
+        if st.button("🗑️ Supprimer dernière santé"):
+            conn.update(worksheet="Sante", data=df_s.iloc[:-1])
             st.rerun()
 
 # --- 5. ONGLET CRÈCHE ---
@@ -111,8 +131,8 @@ with tab_creche:
 
     with st.form("creche_form", clear_on_submit=True):
         d_cr = st.date_input("Journée", datetime.now(), key="d_cr")
-        h_arr = st.time_input("Heure d'arrivée")
-        h_dep = st.time_input("Heure de départ")
+        h_arr = st.time_input("Arrivée")
+        h_dep = st.time_input("Départ")
         n_cr = st.text_input("Note crèche")
         
         if st.form_submit_button("Enregistrer Crèche"):
@@ -125,25 +145,40 @@ with tab_creche:
             
             new_data_cr = pd.DataFrame([{"Date": d_cr.strftime("%d/%m/%Y"), "Arrivee": h_arr.strftime("%H:%M"), "Depart": h_dep.strftime("%H:%M"), "Duree": duree_str, "Notes": n_cr}])
             conn.update(worksheet="Creche", data=pd.concat([df_cr, new_data_cr], ignore_index=True))
-            st.success(f"Journée enregistrée ! (Durée : {duree_str})")
+            st.success(f"Crèche notée ! ({duree_str})")
             st.rerun()
 
-# --- RÉCAPITULATIF (Optimisé pour mobile) ---
+    if not df_cr.empty:
+        if st.button("🗑️ Supprimer dernière crèche"):
+            conn.update(worksheet="Creche", data=df_cr.iloc[:-1])
+            st.rerun()
+
+# --- RÉCAPITULATIF COMPLET ---
 st.divider()
-st.subheader("📊 Derniers suivis")
+st.subheader("📊 Récapitulatif Global")
 
-if not df_r.empty:
-    st.write("**🍼 Repas**")
-    st.dataframe(df_r.tail(3)[['Date', 'Heure', 'Quantite', 'Type']], use_container_width=True, hide_index=True)
+# On utilise des colonnes pour un affichage propre
+c1, c2 = st.columns(2)
 
-if not df_c.empty:
-    st.write("**🧷 Changes**")
-    st.dataframe(df_c.tail(3)[['Date', 'Heure', 'Type']], use_container_width=True, hide_index=True)
+with c1:
+    if not df_r.empty:
+        st.write("**🍼 Repas**")
+        st.dataframe(df_r.tail(3)[['Date', 'Heure', 'Quantite', 'Type']], use_container_width=True, hide_index=True)
 
-if not df_m.empty:
-    st.write("**💊 Médicaments**")
-    st.dataframe(df_m.tail(3)[['Date', 'Nom', 'Donne']], use_container_width=True, hide_index=True)
+    if not df_m.empty:
+        st.write("**💊 Médicaments**")
+        st.dataframe(df_m.tail(3)[['Date', 'Nom', 'Donne']], use_container_width=True, hide_index=True)
 
-if not df_cr.empty:
-    st.write("**🏫 Crèche**")
-    st.dataframe(df_cr.tail(3)[['Date', 'Duree', 'Notes']], use_container_width=True, hide_index=True)
+with c2:
+    if not df_c.empty:
+        st.write("**🧷 Changes**")
+        st.dataframe(df_c.tail(3)[['Date', 'Heure', 'Type']], use_container_width=True, hide_index=True)
+
+    if not df_cr.empty:
+        st.write("**🏫 Crèche**")
+        st.dataframe(df_cr.tail(3)[['Date', 'Duree']], use_container_width=True, hide_index=True)
+
+# Santé en pleine largeur car plus de colonnes
+if not df_s.empty:
+    st.write("**🩺 Suivi Santé**")
+    st.dataframe(df_s.tail(3)[['Date', 'Poids', 'Taille', 'Temperature']], use_container_width=True, hide_index=True)

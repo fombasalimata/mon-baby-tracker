@@ -16,7 +16,7 @@ except Exception as e:
 
 # 3. ONGLETS
 tabs = st.tabs(["🍼 Repas", "🧷 Changes", "💊 Médocs", "🩺 Santé", "🏫 Crèche"])
-t_repas, t_change, t_medoc, t_sante, t_creche = tabs
+tab_repas, tab_change, tab_medoc, tab_sante, tab_creche = tabs
 
 # --- CHARGEMENT DES DONNÉES ---
 try: df_r = conn.read(worksheet="Repas", ttl=0)
@@ -30,25 +30,15 @@ except: df_s = pd.DataFrame()
 try: df_cr = conn.read(worksheet="Creche", ttl=0)
 except: df_cr = pd.DataFrame()
 
-# --- FONCTION POUR LE CHOIX DE L'HEURE (Optimisée) ---
-def input_heure(key_suffix):
-    col_h1, col_h2 = st.columns([1, 1])
-    mode = col_h1.radio("Réglage heure", ["Maintenant", "Manuel"], key=f"mode_{key_suffix}", horizontal=True)
-    if mode == "Maintenant":
-        heure_choisie = datetime.now().time()
-        col_h2.info(f"🕒 {heure_choisie.strftime('%H:%M')}")
-    else:
-        heure_choisie = col_h2.time_input("Choisir l'heure", datetime.now().time(), key=f"time_{key_suffix}")
-    return heure_choisie
-
 # --- 1. ONGLET REPAS ---
-with t_repas:
+with tab_repas:
     with st.form("r_f", clear_on_submit=True):
         d = st.date_input("Date", datetime.now(), key="dr")
-        h = input_heure("repas")
+        # Un seul champ simple pour l'heure
+        h = st.time_input("Heure", datetime.now().time(), key="hr")
         t = st.selectbox("Type", ["Tétée", "Biberon Infantile", "Biberon Maternel", "Diversification"])
         q = st.number_input("Quantité (ml)", 0, step=10)
-        n = st.text_input("Note (ex: Sein gauche...)")
+        n = st.text_input("Note")
         if st.form_submit_button("Enregistrer Repas"):
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Quantite": q, "Type": t, "Notes": n}])
             conn.update(worksheet="Repas", data=pd.concat([df_r, new], ignore_index=True))
@@ -56,10 +46,10 @@ with t_repas:
             st.rerun()
 
 # --- 2. ONGLET CHANGES ---
-with t_change:
+with tab_change:
     with st.form("c_f", clear_on_submit=True):
         dc = st.date_input("Date", datetime.now(), key="dc")
-        hc = input_heure("change")
+        hc = st.time_input("Heure", datetime.now().time(), key="hc")
         et = st.radio("Contenu", ["Urine", "Selles", "Les deux"])
         nc = st.text_input("Note change")
         if st.form_submit_button("Enregistrer Change"):
@@ -68,11 +58,11 @@ with t_change:
             st.success("Change enregistré !")
             st.rerun()
 
-# --- 3. ONGLET MÉDOCS ---
-with t_medoc:
+# --- 3. ONGLET MÉDICAMENTS ---
+with tab_medoc:
     with st.form("m_f", clear_on_submit=True):
         dm = st.date_input("Date", datetime.now(), key="dm")
-        hm = input_heure("medoc")
+        hm = st.time_input("Heure", datetime.now().time(), key="hm")
         nom = st.text_input("Médicament")
         donne = st.checkbox("Donné", value=True)
         nm = st.text_input("Note médicament")
@@ -83,7 +73,7 @@ with t_medoc:
             st.rerun()
 
 # --- 4. ONGLET SANTÉ & GRAPHIQUE ---
-with t_sante:
+with tab_sante:
     with st.form("s_f", clear_on_submit=True):
         ds = st.date_input("Date", datetime.now(), key="ds")
         p = st.number_input("Poids (kg)", 0.0, step=0.01)
@@ -103,13 +93,13 @@ with t_sante:
         st.line_chart(df_chart.sort_values('Date').set_index('Date')['Poids'])
 
 # --- 5. ONGLET CRÈCHE ---
-with t_creche:
+with tab_creche:
     with st.form("cr_f", clear_on_submit=True):
         dcr = st.date_input("Journée", datetime.now())
-        ha = st.time_input("Heure d'arrivée", datetime.now().replace(hour=8, minute=30))
-        hd = st.time_input("Heure de départ", datetime.now().replace(hour=17, minute=30))
+        ha = st.time_input("Arrivée", datetime.now().replace(hour=8, minute=30))
+        hd = st.time_input("Départ", datetime.now().replace(hour=17, minute=30))
         ncr = st.text_input("Note crèche")
-        if st.form_submit_button("Enregistrer Crèche"):
+        if st.form_submit_button("Enregistrer"):
             t1, t2 = datetime.combine(dcr, ha), datetime.combine(dcr, hd)
             dur = t2 - t1
             dur_str = f"{dur.seconds//3600}h{(dur.seconds//60)%60:02d}"
@@ -118,7 +108,7 @@ with t_creche:
             st.success(f"Crèche notée ({dur_str})")
             st.rerun()
 
-# --- RÉCAPITULATIF GLOBAL ---
+# --- RÉCAPITULATIF ---
 st.divider()
 st.subheader("📊 Récapitulatif")
 

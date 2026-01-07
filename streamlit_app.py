@@ -44,6 +44,12 @@ with t_repas:
             conn.update(worksheet="Repas", data=pd.concat([df_r, new], ignore_index=True))
             st.success("Repas enregistré !")
             st.rerun()
+    
+    if not df_r.empty:
+        if st.button("🗑️ Supprimer le dernier repas", key="del_r"):
+            conn.update(worksheet="Repas", data=df_r.iloc[:-1])
+            st.warning("Dernier repas supprimé.")
+            st.rerun()
 
 # --- 2. ONGLET CHANGES ---
 with t_change:
@@ -57,18 +63,31 @@ with t_change:
             conn.update(worksheet="Changes", data=pd.concat([df_c, new], ignore_index=True))
             st.success("Change enregistré !")
             st.rerun()
+    
+    if not df_c.empty:
+        if st.button("🗑️ Supprimer le dernier change", key="del_c"):
+            conn.update(worksheet="Changes", data=df_c.iloc[:-1])
+            st.warning("Dernier change supprimé.")
+            st.rerun()
 
 # --- 3. ONGLET MÉDOCS ---
 with t_medoc:
     with st.form("m_f", clear_on_submit=True):
         dm = st.date_input("Date", datetime.now(), key="dm")
+        hm_input = st.time_input("Heure", datetime.now().time(), key="hm")
         nom = st.text_input("Médicament")
         donne = st.checkbox("Donné", value=True)
         nm = st.text_input("Note médicament")
         if st.form_submit_button("Enregistrer Médoc"):
-            new = pd.DataFrame([{"Date": dm.strftime("%d/%m/%Y"), "Nom": nom, "Donne": "✅ Oui" if donne else "❌ Non", "Notes": nm}])
+            new = pd.DataFrame([{"Date": dm.strftime("%d/%m/%Y"), "Heure": hm_input.strftime("%H:%M"), "Nom": nom, "Donne": "✅ Oui" if donne else "❌ Non", "Notes": nm}])
             conn.update(worksheet="Medicaments", data=pd.concat([df_m, new], ignore_index=True))
             st.success("Prise enregistrée !")
+            st.rerun()
+    
+    if not df_m.empty:
+        if st.button("🗑️ Supprimer le dernier médicament", key="del_m"):
+            conn.update(worksheet="Medicaments", data=df_m.iloc[:-1])
+            st.warning("Dernier médicament supprimé.")
             st.rerun()
 
 # --- 4. ONGLET SANTÉ & GRAPHIQUE ---
@@ -85,6 +104,12 @@ with t_sante:
             st.success("Données santé enregistrées !")
             st.rerun()
     
+    if not df_s.empty:
+        if st.button("🗑️ Supprimer la dernière donnée santé", key="del_s"):
+            conn.update(worksheet="Sante", data=df_s.iloc[:-1])
+            st.warning("Dernière donnée supprimée.")
+            st.rerun()
+            
     if not df_s.empty and len(df_s) >= 2:
         st.subheader("📈 Courbe de poids")
         df_chart = df_s.copy()
@@ -105,6 +130,12 @@ with t_creche:
             new = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Duree": dur_str, "Notes": ncr}])
             conn.update(worksheet="Creche", data=pd.concat([df_cr, new], ignore_index=True))
             st.success(f"Journée enregistrée ({dur_str}) !")
+            st.rerun()
+    
+    if not df_cr.empty:
+        if st.button("🗑️ Supprimer la dernière journée crèche", key="del_cr"):
+            conn.update(worksheet="Creche", data=df_cr.iloc[:-1])
+            st.warning("Dernière journée supprimée.")
             st.rerun()
 
 # --- RÉCAPITULATIF GLOBAL ---

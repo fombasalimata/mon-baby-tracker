@@ -3,11 +3,11 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# 1. CONFIGURATION
+# 1. CONFIGURATION DE LA PAGE
 st.set_page_config(page_title="Baby Tracker Pro", page_icon="👶", layout="centered")
 st.title("👶 Baby Tracker")
 
-# 2. CONNEXION
+# 2. CONNEXION GOOGLE SHEETS
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
 except Exception as e:
@@ -16,7 +16,7 @@ except Exception as e:
 
 # 3. ONGLETS
 tabs = st.tabs(["🍼 Repas", "🧷 Changes", "💊 Médocs", "🩺 Santé", "🏫 Crèche"])
-tab_repas, tab_change, tab_medoc, tab_sante, tab_creche = tabs
+t_repas, t_change, t_medoc, t_sante, t_creche = tabs
 
 # --- CHARGEMENT DES DONNÉES ---
 try: df_r = conn.read(worksheet="Repas", ttl=0)
@@ -31,14 +31,14 @@ try: df_cr = conn.read(worksheet="Creche", ttl=0)
 except: df_cr = pd.DataFrame()
 
 # --- 1. ONGLET REPAS ---
-with tab_repas:
+with t_repas:
     with st.form("r_f", clear_on_submit=True):
-        d = st.date_input("Date", datetime.now(), key="dr")
-        # Un seul champ simple pour l'heure
-        h = st.time_input("Heure", datetime.now().time(), key="hr")
+        col1, col2 = st.columns(2)
+        d = col1.date_input("Date", datetime.now(), key="dr")
+        h = col2.time_input("Heure", datetime.now().time(), key="hr")
         t = st.selectbox("Type", ["Tétée", "Biberon Infantile", "Biberon Maternel", "Diversification"])
         q = st.number_input("Quantité (ml)", 0, step=10)
-        n = st.text_input("Note")
+        n = st.text_input("Note (ex: Sein gauche, a bien bu...)")
         if st.form_submit_button("Enregistrer Repas"):
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Quantite": q, "Type": t, "Notes": n}])
             conn.update(worksheet="Repas", data=pd.concat([df_r, new], ignore_index=True))
@@ -46,7 +46,7 @@ with tab_repas:
             st.rerun()
 
 # --- 2. ONGLET CHANGES ---
-with tab_change:
+with t_change:
     with st.form("c_f", clear_on_submit=True):
         dc = st.date_input("Date", datetime.now(), key="dc")
         hc = st.time_input("Heure", datetime.now().time(), key="hc")
@@ -58,22 +58,21 @@ with tab_change:
             st.success("Change enregistré !")
             st.rerun()
 
-# --- 3. ONGLET MÉDICAMENTS ---
-with tab_medoc:
+# --- 3. ONGLET MÉDOCS ---
+with t_medoc:
     with st.form("m_f", clear_on_submit=True):
         dm = st.date_input("Date", datetime.now(), key="dm")
-        hm = st.time_input("Heure", datetime.now().time(), key="hm")
         nom = st.text_input("Médicament")
         donne = st.checkbox("Donné", value=True)
         nm = st.text_input("Note médicament")
         if st.form_submit_button("Enregistrer Médoc"):
-            new = pd.DataFrame([{"Date": dm.strftime("%d/%m/%Y"), "Heure": hm.strftime("%H:%M"), "Nom": nom, "Donne": "✅ Oui" if donne else "❌ Non", "Notes": nm}])
+            new = pd.DataFrame([{"Date": dm.strftime("%d/%m/%Y"), "Nom": nom, "Donne": "✅ Oui" if donne else "❌ Non", "Notes": nm}])
             conn.update(worksheet="Medicaments", data=pd.concat([df_m, new], ignore_index=True))
             st.success("Prise enregistrée !")
             st.rerun()
 
 # --- 4. ONGLET SANTÉ & GRAPHIQUE ---
-with tab_sante:
+with t_sante:
     with st.form("s_f", clear_on_submit=True):
         ds = st.date_input("Date", datetime.now(), key="ds")
         p = st.number_input("Poids (kg)", 0.0, step=0.01)
@@ -83,7 +82,7 @@ with tab_sante:
         if st.form_submit_button("Enregistrer Santé"):
             new = pd.DataFrame([{"Date": ds.strftime("%d/%m/%Y"), "Poids": p, "Taille": ta, "Temperature": te, "Notes": ns}])
             conn.update(worksheet="Sante", data=pd.concat([df_s, new], ignore_index=True))
-            st.success("Santé enregistrée !")
+            st.success("Données santé enregistrées !")
             st.rerun()
     
     if not df_s.empty and len(df_s) >= 2:
@@ -93,37 +92,37 @@ with tab_sante:
         st.line_chart(df_chart.sort_values('Date').set_index('Date')['Poids'])
 
 # --- 5. ONGLET CRÈCHE ---
-with tab_creche:
+with t_creche:
     with st.form("cr_f", clear_on_submit=True):
         dcr = st.date_input("Journée", datetime.now())
-        ha = st.time_input("Arrivée", datetime.now().replace(hour=8, minute=30))
-        hd = st.time_input("Départ", datetime.now().replace(hour=17, minute=30))
+        ha = st.time_input("Arrivée")
+        hd = st.time_input("Départ")
         ncr = st.text_input("Note crèche")
-        if st.form_submit_button("Enregistrer"):
+        if st.form_submit_button("Enregistrer Crèche"):
             t1, t2 = datetime.combine(dcr, ha), datetime.combine(dcr, hd)
             dur = t2 - t1
             dur_str = f"{dur.seconds//3600}h{(dur.seconds//60)%60:02d}"
             new = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Duree": dur_str, "Notes": ncr}])
             conn.update(worksheet="Creche", data=pd.concat([df_cr, new], ignore_index=True))
-            st.success(f"Crèche notée ({dur_str})")
+            st.success(f"Journée enregistrée ({dur_str}) !")
             st.rerun()
 
-# --- RÉCAPITULATIF ---
+# --- RÉCAPITULATIF GLOBAL ---
 st.divider()
 st.subheader("📊 Récapitulatif")
 
 if not df_r.empty:
-    st.write("**🍼 Repas**")
+    st.write("**🍼 Derniers Repas**")
     r_disp = df_r.tail(3).copy()
     r_disp['Quantite'] = r_disp['Quantite'].astype(str) + " ml"
     st.dataframe(r_disp, use_container_width=True, hide_index=True)
 
 if not df_c.empty:
-    st.write("**🧷 Changes**")
+    st.write("**🧷 Derniers Changes**")
     st.dataframe(df_c.tail(3), use_container_width=True, hide_index=True)
 
 if not df_m.empty:
-    st.write("**💊 Médicaments**")
+    st.write("**💊 Derniers Médocs**")
     st.dataframe(df_m.tail(3), use_container_width=True, hide_index=True)
 
 if not df_cr.empty:

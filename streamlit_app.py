@@ -56,19 +56,34 @@ with t_medoc:
             conn.update(worksheet="Medicaments", data=pd.concat([df_m, new], ignore_index=True))
             st.rerun()
 
-# --- 4. SANTÉ ---
+# --- 4. SANTÉ & GRAPHIQUE ---
 with t_sante:
     try: df_s = conn.read(worksheet="Sante", ttl=0)
     except: df_s = pd.DataFrame()
+
     with st.form("s_f", clear_on_submit=True):
         ds = st.date_input("Date", datetime.now(), key="ds")
-        p = st.number_input("Poids (kg)", 0.0, step=0.01)
+        p = st.number_input("Poids (kg)", 0.0, step=0.01, format="%.2f")
         ta = st.number_input("Taille (cm)", 0.0, step=0.5)
-        te = st.number_input("Température (°C)", 35.0, 41.0, 37.0)
+        te = st.number_input("Température (°C)", 35.0, 41.0, 37.0, step=0.1)
         if st.form_submit_button("Enregistrer Santé"):
             new = pd.DataFrame([{"Date": ds.strftime("%d/%m/%Y"), "Poids": p, "Taille": ta, "Temperature": te}])
             conn.update(worksheet="Sante", data=pd.concat([df_s, new], ignore_index=True))
             st.rerun()
+
+    # SECTION GRAPHIQUE DE POIDS
+    if not df_s.empty and len(df_s) > 1:
+        st.subheader("📈 Courbe de poids")
+        try:
+            # Préparation des données pour le graphique
+            df_chart = df_s.copy()
+            df_chart['Date'] = pd.to_datetime(df_chart['Date'], format='%d/%m/%Y')
+            df_chart = df_chart.sort_values('Date')
+            
+            # Affichage du graphique
+            st.line_chart(df_chart.set_index('Date')['Poids'])
+        except Exception as e:
+            st.info("Ajoutez quelques mesures de poids pour voir la courbe apparaître.")
 
 # --- 5. CRÈCHE ---
 with t_creche:
@@ -76,18 +91,13 @@ with t_creche:
     except: df_cr = pd.DataFrame()
     with st.form("cr_f", clear_on_submit=True):
         dcr = st.date_input("Journée", datetime.now())
-        ha = st.time_input("Heure d'arrivée")
-        hd = st.time_input("Heure de départ")
+        ha = st.time_input("Arrivée")
+        hd = st.time_input("Départ")
         if st.form_submit_button("Enregistrer Crèche"):
-            # CALCUL DU NOMBRE D'HEURES
-            t1 = datetime.combine(dcr, ha)
-            t2 = datetime.combine(dcr, hd)
-            diff = t2 - t1
-            heures = diff.seconds // 3600
-            minutes = (diff.seconds // 60) % 60
-            duree_finale = f"{heures}h{minutes:02d}"
-            
-            new = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Duree": duree_finale}])
+            t1, t2 = datetime.combine(dcr, ha), datetime.combine(dcr, hd)
+            dur = t2 - t1
+            dur_str = f"{dur.seconds//3600}h{(dur.seconds//60)%60:02d}"
+            new = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Duree": dur_str}])
             conn.update(worksheet="Creche", data=pd.concat([df_cr, new], ignore_index=True))
             st.rerun()
 
@@ -95,33 +105,23 @@ with t_creche:
 st.divider()
 st.subheader("📊 Récapitulatif Global")
 
-# REPAS
 if not df_r.empty:
     st.write("**🍼 Repas**")
     r_disp = df_r.tail(3).copy()
     r_disp['Quantite'] = r_disp['Quantite'].astype(str) + " ml"
     st.dataframe(r_disp, use_container_width=True, hide_index=True)
 
-# CHANGES (Ajouté ici)
-if not df_c.empty:
-    st.write("**🧷 Changes**")
-    st.dataframe(df_c.tail(3), use_container_width=True, hide_index=True)
-
-# MÉDOCS
 if not df_m.empty:
     st.write("**💊 Médicaments**")
     st.dataframe(df_m.tail(3), use_container_width=True, hide_index=True)
 
-# CRÈCHE (Avec calcul du temps)
 if not df_cr.empty:
-    st.write("**🏫 Crèche (Temps effectué)**")
+    st.write("**🏫 Crèche**")
     st.dataframe(df_cr.tail(3)[['Date', 'Arrivee', 'Depart', 'Duree']], use_container_width=True, hide_index=True)
 
-# SANTÉ
 if not df_s.empty:
     st.write("**🩺 Santé**")
     s_disp = df_s.tail(3).copy()
     s_disp['Poids'] = s_disp['Poids'].astype(str) + " kg"
-    s_disp['Taille'] = s_disp['Taille'].astype(str) + " cm"
     s_disp['Temperature'] = s_disp['Temperature'].astype(str) + " °C"
-    st.dataframe(s_disp, use_container_width=True, hide_index=True)
+    st.dataframe(s_disp[['Date', 'Poids', 'Temperature']], use_container_width=True, hide_index=True)

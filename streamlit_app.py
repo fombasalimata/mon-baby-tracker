@@ -18,18 +18,21 @@ except Exception as e:
 tabs = st.tabs(["🍼 Repas", "🧷 Changes", "😴 Sommeil", "🛁 Bain", "💊 Médocs", "🩺 Santé", "🏫 Crèche"])
 t_repas, t_change, t_sommeil, t_bain, t_medoc, t_sante, t_creche = tabs
 
-# --- LECTURE DES DONNÉES ---
-def load_data(sheet):
-    try: return conn.read(worksheet=sheet, ttl=0)
-    except: return pd.DataFrame()
-
-df_r = load_data("Repas")
-df_c = load_data("Changes")
-df_so = load_data("Sommeil")
-df_b = load_data("Bains")
-df_m = load_data("Medicaments")
-df_s = load_data("Sante")
-df_cr = load_data("Creche")
+# --- CHARGEMENT DES DONNÉES ---
+try: df_r = conn.read(worksheet="Repas", ttl=0)
+except: df_r = pd.DataFrame()
+try: df_c = conn.read(worksheet="Changes", ttl=0)
+except: df_c = pd.DataFrame()
+try: df_so = conn.read(worksheet="Sommeil", ttl=0)
+except: df_so = pd.DataFrame()
+try: df_b = conn.read(worksheet="Bains", ttl=0)
+except: df_b = pd.DataFrame()
+try: df_m = conn.read(worksheet="Medicaments", ttl=0)
+except: df_m = pd.DataFrame()
+try: df_s = conn.read(worksheet="Sante", ttl=0)
+except: df_s = pd.DataFrame()
+try: df_cr = conn.read(worksheet="Creche", ttl=0)
+except: df_cr = pd.DataFrame()
 
 # --- 1. REPAS ---
 with t_repas:
@@ -39,7 +42,7 @@ with t_repas:
         h = col2.time_input("Heure", datetime.now().time(), key="hr")
         t = st.selectbox("Type", ["Tétée", "Biberon Infantile", "Biberon Maternel", "Diversification"])
         q = st.number_input("Quantité (ml)", 0, step=10)
-        n = st.text_input("Note")
+        n = st.text_input("Note", key="nr")
         if st.form_submit_button("Enregistrer Repas"):
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Quantite": q, "Type": t, "Notes": n}])
             conn.update(worksheet="Repas", data=pd.concat([df_r, new], ignore_index=True))
@@ -54,7 +57,7 @@ with t_change:
         dc = st.date_input("Date", datetime.now(), key="dc")
         hc = st.time_input("Heure", datetime.now().time(), key="hc")
         et = st.radio("Contenu", ["Urine", "Selles", "Les deux"], horizontal=True)
-        nc = st.text_input("Note change")
+        nc = st.text_input("Note change", key="nc")
         if st.form_submit_button("Enregistrer Change"):
             new = pd.DataFrame([{"Date": dc.strftime("%d/%m/%Y"), "Heure": hc.strftime("%H:%M"), "Type": et, "Notes": nc}])
             conn.update(worksheet="Changes", data=pd.concat([df_c, new], ignore_index=True))
@@ -66,10 +69,10 @@ with t_change:
 # --- 3. SOMMEIL ---
 with t_sommeil:
     with st.form("so_f", clear_on_submit=True):
-        dso = st.date_input("Date", datetime.now())
-        h_couch = st.time_input("Heure de coucher", datetime.now().time())
-        h_lev = st.time_input("Heure de lever", datetime.now().time())
-        nso = st.text_input("Note sommeil")
+        dso = st.date_input("Date", datetime.now(), key="dso")
+        h_couch = st.time_input("Heure de coucher", key="hso_c")
+        h_lev = st.time_input("Heure de lever", key="hso_l")
+        nso = st.text_input("Note sommeil", key="nso")
         if st.form_submit_button("Enregistrer Sommeil"):
             t1, t2 = datetime.combine(dso, h_couch), datetime.combine(dso, h_lev)
             diff = t2 - t1
@@ -87,7 +90,7 @@ with t_bain:
         db = st.date_input("Date", datetime.now(), key="db")
         hb = st.time_input("Heure", datetime.now().time(), key="hb")
         tb = st.selectbox("Type", ["Bain classique", "Bain libre", "Toilette"])
-        nb = st.text_input("Note bain")
+        nb = st.text_input("Note bain", key="nb")
         if st.form_submit_button("Enregistrer Bain"):
             new = pd.DataFrame([{"Date": db.strftime("%d/%m/%Y"), "Heure": hb.strftime("%H:%M"), "Type": tb, "Notes": nb}])
             conn.update(worksheet="Bains", data=pd.concat([df_b, new], ignore_index=True))
@@ -100,12 +103,12 @@ with t_bain:
 with t_medoc:
     with st.form("m_f", clear_on_submit=True):
         dm = st.date_input("Date", datetime.now(), key="dm")
-        hm_med = st.time_input("Heure", datetime.now().time(), key="hm_med")
+        hm = st.time_input("Heure", datetime.now().time(), key="hm_m")
         nom = st.text_input("Médicament")
         donne = st.checkbox("Donné", value=True)
-        nm = st.text_input("Note")
+        nm = st.text_input("Note", key="nm")
         if st.form_submit_button("Enregistrer Médoc"):
-            new = pd.DataFrame([{"Date": dm.strftime("%d/%m/%Y"), "Heure": hm_med.strftime("%H:%M"), "Nom": nom, "Donne": "✅ Oui" if donne else "❌ Non", "Notes": nm}])
+            new = pd.DataFrame([{"Date": dm.strftime("%d/%m/%Y"), "Heure": hm.strftime("%H:%M"), "Nom": nom, "Donne": "✅ Oui" if donne else "❌ Non", "Notes": nm}])
             conn.update(worksheet="Medicaments", data=pd.concat([df_m, new], ignore_index=True))
             st.rerun()
     if not df_m.empty:
@@ -119,7 +122,7 @@ with t_sante:
         p = st.number_input("Poids (kg)", 0.0, step=0.01)
         ta = st.number_input("Taille (cm)", 0.0, step=0.5)
         te = st.number_input("Température (°C)", 35.0, 41.0, 37.0)
-        ns = st.text_input("Note")
+        ns = st.text_input("Note santé", key="ns")
         if st.form_submit_button("Enregistrer Santé"):
             new = pd.DataFrame([{"Date": ds.strftime("%d/%m/%Y"), "Poids": p, "Taille": ta, "Temperature": te, "Notes": ns}])
             conn.update(worksheet="Sante", data=pd.concat([df_s, new], ignore_index=True))
@@ -136,10 +139,10 @@ with t_sante:
 # --- 7. CRÈCHE ---
 with t_creche:
     with st.form("cr_f", clear_on_submit=True):
-        dcr = st.date_input("Journée", datetime.now())
-        ha = st.time_input("Arrivée")
-        hd = st.time_input("Départ")
-        ncr = st.text_input("Note")
+        dcr = st.date_input("Journée", datetime.now(), key="dcr")
+        ha = st.time_input("Arrivée", key="ha_cr")
+        hd = st.time_input("Départ", key="hd_cr")
+        ncr = st.text_input("Note crèche", key="ncr")
         if st.form_submit_button("Enregistrer Crèche"):
             t1, t2 = datetime.combine(dcr, ha), datetime.combine(dcr, hd)
             dur = t2 - t1
@@ -151,23 +154,40 @@ with t_creche:
         if st.button("🗑️ Supprimer dernière crèche", key="del_cr"):
             conn.update(worksheet="Creche", data=df_cr.iloc[:-1]); st.rerun()
 
-# --- RÉCAPITULATIF ---
+# --- RÉCAPITULATIF GLOBAL (TABLEAUX DÉTAILLÉS) ---
 st.divider()
-st.subheader("📊 Dernières activités")
-col_a, col_b = st.columns(2)
+st.subheader("📊 Récapitulatif Global")
 
-with col_a:
-    if not df_r.empty:
-        st.write("**🍼 Repas**")
-        st.write(f"{df_r.iloc[-1]['Type']} - {df_r.iloc[-1]['Quantite']}ml")
-    if not df_so.empty:
-        st.write("**😴 Sommeil**")
-        st.write(f"Dodo de {df_so.iloc[-1]['Duree']}")
+if not df_r.empty:
+    st.write("**🍼 Repas (3 derniers)**")
+    r_disp = df_r.tail(3).copy()
+    r_disp['Quantite'] = r_disp['Quantite'].astype(str) + " ml"
+    st.dataframe(r_disp, use_container_width=True, hide_index=True)
 
-with col_b:
-    if not df_c.empty:
-        st.write("**🧷 Change**")
-        st.write(f"{df_c.iloc[-1]['Type']} à {df_c.iloc[-1]['Heure']}")
-    if not df_b.empty:
-        st.write("**🛁 Bain**")
-        st.write(f"Le {df_b.iloc[-1]['Date']}")
+if not df_c.empty:
+    st.write("**🧷 Changes (3 derniers)**")
+    st.dataframe(df_c.tail(3), use_container_width=True, hide_index=True)
+
+if not df_so.empty:
+    st.write("**😴 Sommeil (3 derniers)**")
+    st.dataframe(df_so.tail(3), use_container_width=True, hide_index=True)
+
+if not df_b.empty:
+    st.write("**🛁 Bains (3 derniers)**")
+    st.dataframe(df_b.tail(3), use_container_width=True, hide_index=True)
+
+if not df_m.empty:
+    st.write("**💊 Médicaments (3 derniers)**")
+    st.dataframe(df_m.tail(3), use_container_width=True, hide_index=True)
+
+if not df_cr.empty:
+    st.write("**🏫 Crèche (3 derniers)**")
+    st.dataframe(df_cr.tail(3), use_container_width=True, hide_index=True)
+
+if not df_s.empty:
+    st.write("**🩺 Santé (3 derniers)**")
+    s_disp = df_s.tail(3).copy()
+    if 'Poids' in s_disp.columns: s_disp['Poids'] = s_disp['Poids'].astype(str) + " kg"
+    if 'Taille' in s_disp.columns: s_disp['Taille'] = s_disp['Taille'].astype(str) + " cm"
+    if 'Temperature' in s_disp.columns: s_disp['Temperature'] = s_disp['Temperature'].astype(str) + " °C"
+    st.dataframe(s_disp, use_container_width=True, hide_index=True)

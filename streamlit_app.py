@@ -48,7 +48,7 @@ with t_repas:
             conn.update(worksheet="Repas", data=pd.concat([df_r, new], ignore_index=True))
             st.rerun()
     if not df_r.empty:
-        if st.button("🗑️ Supprimer dernier repas", key="del_r"):
+        if st.button("🗑️ Supprimer dernier repas", key="btn_del_repas"):
             conn.update(worksheet="Repas", data=df_r.iloc[:-1]); st.rerun()
 
 # --- 2. CHANGES ---
@@ -63,7 +63,7 @@ with t_change:
             conn.update(worksheet="Changes", data=pd.concat([df_c, new], ignore_index=True))
             st.rerun()
     if not df_c.empty:
-        if st.button("🗑️ Supprimer dernier change", key="del_c"):
+        if st.button("🗑️ Supprimer dernier change", key="btn_del_change"):
             conn.update(worksheet="Changes", data=df_c.iloc[:-1]); st.rerun()
 
 # --- 3. SOMMEIL ---
@@ -80,9 +80,8 @@ with t_sommeil:
             new = pd.DataFrame([{"Date": dso.strftime("%d/%m/%Y"), "Coucher": h_couch.strftime("%H:%M"), "Lever": h_lev.strftime("%H:%M"), "Duree": dur_str, "Notes": nso}])
             conn.update(worksheet="Sommeil", data=pd.concat([df_so, new], ignore_index=True))
             st.rerun()
-    # AJOUT SUPPRESSION SOMMEIL
     if not df_so.empty:
-        if st.button("🗑️ Supprimer dernier sommeil", key="del_so"):
+        if st.button("🗑️ Supprimer dernier sommeil", key="btn_del_sommeil"):
             conn.update(worksheet="Sommeil", data=df_so.iloc[:-1]); st.rerun()
 
 # --- 4. BAIN ---
@@ -96,9 +95,8 @@ with t_bain:
             new = pd.DataFrame([{"Date": db.strftime("%d/%m/%Y"), "Heure": hb.strftime("%H:%M"), "Type": tb, "Notes": nb}])
             conn.update(worksheet="Bains", data=pd.concat([df_b, new], ignore_index=True))
             st.rerun()
-    # AJOUT SUPPRESSION BAIN
     if not df_b.empty:
-        if st.button("🗑️ Supprimer dernier bain", key="del_b"):
+        if st.button("🗑️ Supprimer dernier bain", key="btn_del_bain"):
             conn.update(worksheet="Bains", data=df_b.iloc[:-1]); st.rerun()
 
 # --- 5. MÉDOCS ---
@@ -114,7 +112,7 @@ with t_medoc:
             conn.update(worksheet="Medicaments", data=pd.concat([df_m, new], ignore_index=True))
             st.rerun()
     if not df_m.empty:
-        if st.button("🗑️ Supprimer dernier médicament", key="del_m"):
+        if st.button("🗑️ Supprimer dernier médicament", key="btn_del_medoc"):
             conn.update(worksheet="Medicaments", data=df_m.iloc[:-1]); st.rerun()
 
 # --- 6. SANTÉ & GRAPHIQUE ---
@@ -130,7 +128,7 @@ with t_sante:
             conn.update(worksheet="Sante", data=pd.concat([df_s, new], ignore_index=True))
             st.rerun()
     if not df_s.empty:
-        if st.button("🗑️ Supprimer dernière santé", key="del_s"):
+        if st.button("🗑️ Supprimer dernière santé", key="btn_del_sante"):
             conn.update(worksheet="Sante", data=df_s.iloc[:-1]); st.rerun()
     if not df_s.empty and len(df_s) >= 2:
         st.subheader("📈 Courbe de poids")
@@ -152,9 +150,8 @@ with t_creche:
             new = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Duree": dur_str, "Notes": ncr}])
             conn.update(worksheet="Creche", data=pd.concat([df_cr, new], ignore_index=True))
             st.rerun()
-    # AJOUT SUPPRESSION CRÈCHE
     if not df_cr.empty:
-        if st.button("🗑️ Supprimer dernière crèche", key="del_cr"):
+        if st.button("🗑️ Supprimer dernière crèche", key="btn_del_creche"):
             conn.update(worksheet="Creche", data=df_cr.iloc[:-1]); st.rerun()
 
 # --- RÉCAPITULATIF GLOBAL ---
@@ -162,35 +159,33 @@ st.divider()
 st.subheader("📊 Récapitulatif Global")
 
 if not df_r.empty:
-    st.write("**🍼 Repas (3 derniers)**")
+    st.write("**🍼 Repas**")
     r_disp = df_r.tail(3).copy()
     r_disp['Quantite'] = r_disp['Quantite'].astype(str) + " ml"
     st.dataframe(r_disp, use_container_width=True, hide_index=True)
 
 if not df_c.empty:
-    st.write("**🧷 Changes (3 derniers)**")
+    st.write("**🧷 Changes**")
     st.dataframe(df_c.tail(3), use_container_width=True, hide_index=True)
 
 if not df_so.empty:
-    st.write("**😴 Sommeil (3 derniers)**")
+    st.write("**😴 Sommeil**")
     st.dataframe(df_so.tail(3), use_container_width=True, hide_index=True)
 
 if not df_b.empty:
-    st.write("**🛁 Bains (3 derniers)**")
+    st.write("**🛁 Bains**")
     st.dataframe(df_b.tail(3), use_container_width=True, hide_index=True)
 
 if not df_m.empty:
-    st.write("**💊 Médicaments (3 derniers)**")
+    st.write("**💊 Médicaments**")
     st.dataframe(df_m.tail(3), use_container_width=True, hide_index=True)
 
 if not df_cr.empty:
-    st.write("**🏫 Crèche (3 derniers)**")
+    st.write("**🏫 Crèche**")
     st.dataframe(df_cr.tail(3), use_container_width=True, hide_index=True)
 
 if not df_s.empty:
-    st.write("**🩺 Santé (3 derniers)**")
+    st.write("**🩺 Santé**")
     s_disp = df_s.tail(3).copy()
     if 'Poids' in s_disp.columns: s_disp['Poids'] = s_disp['Poids'].astype(str) + " kg"
-    if 'Taille' in s_disp.columns: s_disp['Taille'] = s_disp['Taille'].astype(str) + " cm"
-    if 'Temperature' in s_disp.columns: s_disp['Temperature'] = s_disp['Temperature'].astype(str) + " °C"
     st.dataframe(s_disp, use_container_width=True, hide_index=True)

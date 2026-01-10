@@ -25,7 +25,7 @@ def load_sheet_safe(name):
     except:
         return pd.DataFrame()
 
-# Gestion du rafraîchissement
+# Gestion du rafraîchissement forcé
 if "needs_refresh" not in st.session_state:
     st.session_state.needs_refresh = False
 
@@ -33,7 +33,7 @@ if st.session_state.needs_refresh:
     st.cache_data.clear()
     st.session_state.needs_refresh = False
 
-# Chargement initial
+# Chargement initial des données
 df_r = load_sheet_safe("Repas")
 df_c = load_sheet_safe("Changes")
 df_so = load_sheet_safe("Sommeil")
@@ -177,12 +177,12 @@ with t_creche:
             st.session_state.needs_refresh = True
             st.rerun()
     if not df_cr.empty:
-        if st.button("🗑️ Supprimer dernière crèche"):
+        if st.button("🗑️ Supprimer dernière donnée crèche"):
             conn.update(worksheet="Creche", data=df_cr.iloc[:-1])
             st.session_state.needs_refresh = True
             st.rerun()
 
-# --- 5. RÉCAPITULATIFS (Rafraîchissement forcé) ---
+# --- 5. RÉCAPITULATIFS ---
 st.divider()
 st.subheader("📊 Récapitulatif Global")
 

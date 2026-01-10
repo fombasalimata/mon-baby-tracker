@@ -18,15 +18,22 @@ except Exception as e:
     st.error(f"Erreur de connexion : {e}")
     st.stop()
 
-# 3. FONCTION DE LECTURE (SÉCURISÉE & SANS CACHE)
+# 3. FONCTION DE LECTURE (SÉCURISÉE)
 def load_sheet_safe(name):
     try:
-        data = conn.read(worksheet=name, ttl=0)
-        return data if data is not None else pd.DataFrame()
+        return conn.read(worksheet=name, ttl=0)
     except:
         return pd.DataFrame()
 
-# Chargement initial des données
+# Gestion du rafraîchissement
+if "needs_refresh" not in st.session_state:
+    st.session_state.needs_refresh = False
+
+if st.session_state.needs_refresh:
+    st.cache_data.clear()
+    st.session_state.needs_refresh = False
+
+# Chargement initial
 df_r = load_sheet_safe("Repas")
 df_c = load_sheet_safe("Changes")
 df_so = load_sheet_safe("Sommeil")
@@ -50,8 +57,13 @@ with t_repas:
         n = st.text_input("Note", key="nr")
         if st.form_submit_button("Enregistrer Repas"):
             new_line = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Quantite": q, "Type": t, "Notes": n}])
-            updated = pd.concat([df_r, new_line], ignore_index=True)
-            conn.update(worksheet="Repas", data=updated)
+            conn.update(worksheet="Repas", data=pd.concat([df_r, new_line], ignore_index=True))
+            st.session_state.needs_refresh = True
+            st.rerun()
+    if not df_r.empty:
+        if st.button("🗑️ Supprimer dernier repas"):
+            conn.update(worksheet="Repas", data=df_r.iloc[:-1])
+            st.session_state.needs_refresh = True
             st.rerun()
 
 # --- 🧷 CHANGES ---
@@ -60,11 +72,16 @@ with t_change:
         dc = st.date_input("Date", maintenant, key="dc")
         hc = st.time_input("Heure", maintenant.time(), key="hc")
         et = st.radio("Contenu", ["Urine", "Selles", "Les deux"], horizontal=True)
-        nc = st.text_input("Note change", key="nc")
+        nc = st.text_input("Note", key="nc")
         if st.form_submit_button("Enregistrer Change"):
             new_line = pd.DataFrame([{"Date": dc.strftime("%d/%m/%Y"), "Heure": hc.strftime("%H:%M"), "Type": et, "Notes": nc}])
-            updated = pd.concat([df_c, new_line], ignore_index=True)
-            conn.update(worksheet="Changes", data=updated)
+            conn.update(worksheet="Changes", data=pd.concat([df_c, new_line], ignore_index=True))
+            st.session_state.needs_refresh = True
+            st.rerun()
+    if not df_c.empty:
+        if st.button("🗑️ Supprimer dernier change"):
+            conn.update(worksheet="Changes", data=df_c.iloc[:-1])
+            st.session_state.needs_refresh = True
             st.rerun()
 
 # --- 😴 SOMMEIL ---
@@ -79,8 +96,13 @@ with t_sommeil:
             diff = t2 - t1
             dur_str = f"{diff.seconds//3600}h{(diff.seconds//60)%60:02d}"
             new_line = pd.DataFrame([{"Date": dso.strftime("%d/%m/%Y"), "Coucher": h_couch.strftime("%H:%M"), "Lever": h_lev.strftime("%H:%M"), "Duree": dur_str, "Notes": nso}])
-            updated = pd.concat([df_so, new_line], ignore_index=True)
-            conn.update(worksheet="Sommeil", data=updated)
+            conn.update(worksheet="Sommeil", data=pd.concat([df_so, new_line], ignore_index=True))
+            st.session_state.needs_refresh = True
+            st.rerun()
+    if not df_so.empty:
+        if st.button("🗑️ Supprimer dernier sommeil"):
+            conn.update(worksheet="Sommeil", data=df_so.iloc[:-1])
+            st.session_state.needs_refresh = True
             st.rerun()
 
 # --- 🛁 BAIN ---
@@ -92,8 +114,13 @@ with t_bain:
         nb = st.text_input("Note", key="nb")
         if st.form_submit_button("Enregistrer Bain"):
             new_line = pd.DataFrame([{"Date": db.strftime("%d/%m/%Y"), "Heure": hb.strftime("%H:%M"), "Type": tb, "Notes": nb}])
-            updated = pd.concat([df_b, new_line], ignore_index=True)
-            conn.update(worksheet="Bains", data=updated)
+            conn.update(worksheet="Bains", data=pd.concat([df_b, new_line], ignore_index=True))
+            st.session_state.needs_refresh = True
+            st.rerun()
+    if not df_b.empty:
+        if st.button("🗑️ Supprimer dernier bain"):
+            conn.update(worksheet="Bains", data=df_b.iloc[:-1])
+            st.session_state.needs_refresh = True
             st.rerun()
 
 # --- 💊 MÉDOCS ---
@@ -107,8 +134,13 @@ with t_medoc:
         if st.form_submit_button("Enregistrer"):
             statut = "Oui" if donne else "Non"
             new_line = pd.DataFrame([{"Date": dm.strftime("%d/%m/%Y"), "Heure": hm.strftime("%H:%M"), "Nom": nom, "Donne": statut, "Notes": nm}])
-            updated = pd.concat([df_m, new_line], ignore_index=True)
-            conn.update(worksheet="Medicaments", data=updated)
+            conn.update(worksheet="Medicaments", data=pd.concat([df_m, new_line], ignore_index=True))
+            st.session_state.needs_refresh = True
+            st.rerun()
+    if not df_m.empty:
+        if st.button("🗑️ Supprimer dernier médicament"):
+            conn.update(worksheet="Medicaments", data=df_m.iloc[:-1])
+            st.session_state.needs_refresh = True
             st.rerun()
 
 # --- 🩺 SANTÉ ---
@@ -118,10 +150,15 @@ with t_sante:
         p = st.number_input("Poids (kg)", 0.0, step=0.01)
         te = st.number_input("Température (°C)", 35.0, 41.0, 37.0)
         ns = st.text_input("Note", key="ns")
-        if st.form_submit_button("Enregistrer"):
+        if st.form_submit_button("Enregistrer Santé"):
             new_line = pd.DataFrame([{"Date": ds.strftime("%d/%m/%Y"), "Poids": p, "Temperature": te, "Notes": ns}])
-            updated = pd.concat([df_s, new_line], ignore_index=True)
-            conn.update(worksheet="Sante", data=updated)
+            conn.update(worksheet="Sante", data=pd.concat([df_s, new_line], ignore_index=True))
+            st.session_state.needs_refresh = True
+            st.rerun()
+    if not df_s.empty:
+        if st.button("🗑️ Supprimer dernière donnée santé"):
+            conn.update(worksheet="Sante", data=df_s.iloc[:-1])
+            st.session_state.needs_refresh = True
             st.rerun()
 
 # --- 🏫 CRÈCHE ---
@@ -131,16 +168,21 @@ with t_creche:
         ha = st.time_input("Arrivée", maintenant.time(), key="ha")
         hd = st.time_input("Départ", maintenant.time(), key="hd")
         ncr = st.text_input("Note", key="ncr")
-        if st.form_submit_button("Enregistrer"):
+        if st.form_submit_button("Enregistrer Crèche"):
             t1, t2 = datetime.combine(dcr, ha), datetime.combine(dcr, hd)
             dur = t2 - t1
             dur_str = f"{dur.seconds//3600}h{(dur.seconds//60)%60:02d}"
             new_line = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Duree": dur_str, "Notes": ncr}])
-            updated = pd.concat([df_cr, new_line], ignore_index=True)
-            conn.update(worksheet="Creche", data=updated)
+            conn.update(worksheet="Creche", data=pd.concat([df_cr, new_line], ignore_index=True))
+            st.session_state.needs_refresh = True
+            st.rerun()
+    if not df_cr.empty:
+        if st.button("🗑️ Supprimer dernière crèche"):
+            conn.update(worksheet="Creche", data=df_cr.iloc[:-1])
+            st.session_state.needs_refresh = True
             st.rerun()
 
-# --- 5. RÉCAPITULATIFS (Anti-disparition) ---
+# --- 5. RÉCAPITULATIFS (Rafraîchissement forcé) ---
 st.divider()
 st.subheader("📊 Récapitulatif Global")
 
@@ -150,8 +192,9 @@ categories = [
 ]
 
 for label, sheet_name in categories:
-    # On recharge ici pour s'assurer que l'affichage est synchro
-    df_final = load_sheet_safe(sheet_name)
-    if not df_final.empty:
+    df_display = conn.read(worksheet=sheet_name, ttl=0)
+    if df_display is not None and not df_display.empty:
         with st.expander(f"{label} (Derniers enregistrements)", expanded=True):
-            st.dataframe(df_final.tail(3), use_container_width=True, hide_index=True)
+            st.dataframe(df_display.tail(3), use_container_width=True, hide_index=True)
+    else:
+        st.info(f"Aucune donnée pour {label}")

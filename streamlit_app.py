@@ -14,37 +14,38 @@ st.title("👶 Baby Tracker Pro")
 # 2. CONNEXION
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 3. CHARGEMENT GLOBAL OPTIMISÉ (Anti-Quota API Error)
+# 3. CHARGEMENT GLOBAL OPTIMISÉ
 @st.cache_data(ttl="5s")
 def get_all_data():
     sheets = ["Repas", "Changes", "Sommeil", "Bains", "Medicaments", "Sante", "Creche"]
     all_dfs = {}
     for s in sheets:
         try:
-            # ttl=0 ici pour forcer la lecture réelle mais protégé par le cache global de 5s
             df = conn.read(worksheet=s, ttl=0)
-            all_dfs[s] = df if df is not None else pd.DataFrame()
+            # Nettoyage des colonnes vides et conversion en DataFrame propre
+            all_dfs[s] = pd.DataFrame(df).dropna(how='all') if df is not None else pd.DataFrame()
         except:
             all_dfs[s] = pd.DataFrame()
     return all_dfs
 
-# Chargement des données au démarrage
+# Chargement initial
 try:
     data = get_all_data()
-except:
-    st.error("⚠️ Google Sheets est saturé. Attendez 30 secondes sans rafraîchir.")
+except Exception as e:
+    st.error("⚠️ Connexion Google Sheets interrompue. Patientez 30 secondes.")
     st.stop()
 
-# 4. FONCTION DE SAUVEGARDE SÉCURISÉE (Anti-Écrasement)
+# 4. FONCTION DE SAUVEGARDE SÉCURISÉE
 def save_data(sheet_name, updated_df):
-    if updated_df is not None:
-        try:
-            conn.update(worksheet=sheet_name, data=updated_df)
-            st.cache_data.clear() # Force la mise à jour des récapitulatifs
-            st.success("✅ Enregistré !")
-            st.rerun()
-        except Exception as e:
-            st.error(f"❌ Erreur lors de l'enregistrement : {e}")
+    try:
+        # Crucial : Convertir tout en string pour Google Sheets
+        df_to_save = updated_df.astype(str)
+        conn.update(worksheet=sheet_name, data=df_to_save)
+        st.cache_data.clear() 
+        st.success("✅ Enregistré !")
+        st.rerun()
+    except Exception as e:
+        st.error(f"❌ Erreur : {e}")
 
 # 5. ONGLETS
 tabs = st.tabs(["🍼 Repas", "🧷 Changes", "😴 Sommeil", "🛁 Bain", "💊 Médocs", "🩺 Santé", "🏫 Crèche"])
@@ -61,10 +62,11 @@ with t_repas:
         q = st.number_input("Quantité (ml)", 0, step=10)
         n = st.text_input("Note", key="nr")
         if st.form_submit_button("Enregistrer Repas"):
-            new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Quantite": q, "Type": t, "Notes": n}])
+            new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Quantite": str(q), "Type": t, "Notes": n}])
             save_data("Repas", pd.concat([df, new], ignore_index=True))
     if not df.empty:
-        st.button("🗑️ Supprimer dernier repas", on_click=lambda: save_data("Repas", df.iloc[:-1]))
+        if st.button("🗑️ Supprimer dernier repas"):
+            save_data("Repas", df.iloc[:-1])
 
 # --- 🧷 CHANGES ---
 with t_change:
@@ -79,7 +81,8 @@ with t_change:
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Type": et, "Notes": nc}])
             save_data("Changes", pd.concat([df, new], ignore_index=True))
     if not df.empty:
-        st.button("🗑️ Supprimer dernier change", on_click=lambda: save_data("Changes", df.iloc[:-1]))
+        if st.button("🗑️ Supprimer dernier change"):
+            save_data("Changes", df.iloc[:-1])
 
 # --- 😴 SOMMEIL ---
 with t_sommeil:
@@ -95,7 +98,8 @@ with t_sommeil:
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Coucher": h1.strftime("%H:%M"), "Lever": h2.strftime("%H:%M"), "Duree": dur, "Notes": nso}])
             save_data("Sommeil", pd.concat([df, new], ignore_index=True))
     if not df.empty:
-        st.button("🗑️ Supprimer dernier sommeil", on_click=lambda: save_data("Sommeil", df.iloc[:-1]))
+        if st.button("🗑️ Supprimer dernier sommeil"):
+            save_data("Sommeil", df.iloc[:-1])
 
 # --- 🛁 BAIN ---
 with t_bain:
@@ -110,7 +114,8 @@ with t_bain:
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Type": tb, "Notes": nb}])
             save_data("Bains", pd.concat([df, new], ignore_index=True))
     if not df.empty:
-        st.button("🗑️ Supprimer dernier bain", on_click=lambda: save_data("Bains", df.iloc[:-1]))
+        if st.button("🗑️ Supprimer dernier bain"):
+            save_data("Bains", df.iloc[:-1])
 
 # --- 💊 MÉDOCS ---
 with t_medoc:
@@ -126,7 +131,8 @@ with t_medoc:
             new = pd.DataFrame([{"Date": d.strftime("%d/%m/%Y"), "Heure": h.strftime("%H:%M"), "Nom": nom, "Donne": "Oui" if donne else "Non", "Notes": nm}])
             save_data("Medicaments", pd.concat([df, new], ignore_index=True))
     if not df.empty:
-        st.button("🗑️ Supprimer dernier médicament", on_click=lambda: save_data("Medicaments", df.iloc[:-1]))
+        if st.button("🗑️ Supprimer dernier médicament"):
+            save_data("Medicaments", df.iloc[:-1])
 
 # --- 🩺 SANTÉ ---
 with t_sante:
@@ -137,10 +143,11 @@ with t_sante:
         te = st.number_input("Température (°C)", 35.0, 41.0, 37.0)
         ns = st.text_input("Note", key="ns")
         if st.form_submit_button("Enregistrer Santé"):
-            new = pd.DataFrame([{"Date": ds.strftime("%d/%m/%Y"), "Poids": p, "Temperature": te, "Notes": ns}])
+            new = pd.DataFrame([{"Date": ds.strftime("%d/%m/%Y"), "Poids": str(p), "Temperature": str(te), "Notes": ns}])
             save_data("Sante", pd.concat([df, new], ignore_index=True))
     if not df.empty:
-        st.button("🗑️ Supprimer dernière donnée santé", on_click=lambda: save_data("Sante", df.iloc[:-1]))
+        if st.button("🗑️ Supprimer dernière donnée santé"):
+            save_data("Sante", df.iloc[:-1])
 
 # --- 🏫 CRÈCHE ---
 with t_creche:
@@ -154,9 +161,10 @@ with t_creche:
             new = pd.DataFrame([{"Date": dcr.strftime("%d/%m/%Y"), "Arrivee": ha.strftime("%H:%M"), "Depart": hd.strftime("%H:%M"), "Notes": ncr}])
             save_data("Creche", pd.concat([df, new], ignore_index=True))
     if not df.empty:
-        st.button("🗑️ Supprimer dernière donnée crèche", on_click=lambda: save_data("Creche", df.iloc[:-1]))
+        if st.button("🗑️ Supprimer dernière donnée crèche"):
+            save_data("Creche", df.iloc[:-1])
 
-# --- 6. RÉCAPITULATIFS FINAUX (Synchros avec le Cloud) ---
+# --- 6. RÉCAPITULATIFS FINAUX ---
 st.divider()
 st.subheader("📊 Récapitulatif Global")
 

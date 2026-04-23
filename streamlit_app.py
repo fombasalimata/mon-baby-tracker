@@ -9,7 +9,7 @@ st.set_page_config(page_title="Baby Tracker Pro", page_icon="👶", layout="cent
 tz = pytz.timezone('Europe/Paris')
 maintenant = datetime.now(tz)
 
-st.title("👶 Baby Tracker Pro")
+st.title("👶 Baby Tracker ")
 
 # 2. CONNEXION
 conn = st.connection("gsheets", type=GSheetsConnection)
